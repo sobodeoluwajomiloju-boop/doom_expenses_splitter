@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DormSplit - Room 7 Expenses</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Fonts: Plus Jakarta Sans for premium fintech feel -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Interactive Background Canvas for Floating Particles -->
+  <canvas id="particleCanvas"></canvas>
+  <div class="aurora-blob blob-1"></div>
+  <div class="aurora-blob blob-2"></div>
+
+  <!-- AUTH / LOGIN SCREEN -->
+  <div id="authSection" class="auth-wrapper">
+    <div class="auth-container">
+      
+      <!-- Animated Header -->
+      <div class="brand-header">
+        <div class="logo-icon-wrapper">
+          <span class="house-icon">🏠</span>
+          <div class="logo-glow"></div>
+        </div>
+        <h1 class="brand-title-anim">DormSplit</h1>
+        <p class="brand-subtitle">Shared Expense Splitter &mdash; Room 7 (13 Students)</p>
+      </div>
+
+      <!-- Slot Selection View -->
+      <div id="slotSelectionView" class="auth-card glass-card animate-fade-in">
+        <div class="section-badge">✨ Select Your Student Slot</div>
+        <div id="slotsGrid" class="slots-grid">
+          <!-- Dynamically populated slots 1-13 -->
+        </div>
+      </div>
+
+      <!-- PIN / Register Modal Panel (Morphs in when slot is tapped) -->
+      <div id="pinModalPanel" class="auth-card glass-card hidden animate-scale-in">
+        <div class="panel-header">
+          <button class="back-btn" onclick="backToSlots()">← Back to Slots</button>
+          <span id="selectedSlotBadge" class="slot-badge">Slot 1</span>
+        </div>
+
+        <div id="authFormArea">
+          <!-- Injected dynamically: Login PIN pad or Registration form -->
+        </div>
+        <div id="authError" class="error-msg"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER (Unlocked after successful login) -->
+  <div id="appSection" class="hidden">
+    
+    <!-- Top Navbar -->
+    <header class="navbar glass-card">
+      <div class="brand-mini">🏠 DormSplit</div>
+      <div class="user-badge-area">
+        <div class="user-info-pill interactive-pill" onclick="openProfileModal()">
+          <div class="avatar-sm-wrapper">
+            <img id="navAvatarImg" src="" class="avatar-sm-img hidden" alt="Profile" />
+            <span class="avatar-sm" id="navAvatar">S1</span>
+          </div>
+          <div>
+            <span id="navName" class="font-bold">Student 1</span>
+            <small class="room-sub">Room 7 • Slot 1</small>
+          </div>
+        </div>
+        <button class="btn btn-outline-sm" onclick="logout()">Log Out</button>
+      </div>
+    </header>
+
+    <!-- Main Content Views -->
+    <main class="main-content">
+
+      <!-- 1. DASHBOARD VIEW -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="stats-grid">
+          <div class="stat-card glass-card">
+            <span class="stat-label">Total Dorm Spending</span>
+            <h2 id="statTotalSpending">₦0.00</h2>
+            <small class="subtitle">All expenses logged</small>
+          </div>
+          <div class="stat-card glass-card">
+            <span class="stat-label">You Are Owed</span>
+            <h2 id="statYouAreOwed" class="pos-val">₦0.00</h2>
+            <small class="subtitle">From roommates</small>
+          </div>
+          <div class="stat-card glass-card">
+            <span class="stat-label">You Owe</span>
+            <h2 id="statYouOwe" class="neg-val">₦0.00</h2>
+            <small class="subtitle">To roommates</small>
+          </div>
+          <div class="stat-card glass-card">
+            <span class="stat-label">Settlements</span>
+            <h2 id="statSettlementsCount">0</h2>
+            <small class="subtitle">Transactions needed</small>
+          </div>
+        </div>
+
+        <div class="card glass-card">
+          <h3>Individual Balances</h3>
+          <p class="subtitle">Live financial standing across Room 7 slots</p>
+          <div id="individualBalancesGrid" class="grid-3"></div>
+        </div>
+      </section>
+
+      <!-- 2. ROOMMATES VIEW -->
+      <section id="view-roommates" class="view-section">
+        <div class="card glass-card">
+          <h3>Roommate Profiles & Security</h3>
+          <p class="subtitle">Manage profiles and update your security PIN</p>
+          
+          <div id="changePinContainer" class="card glass-card" style="background: rgba(15, 23, 42, 0.6); margin: 15px 0;">
+            <h4>🔑 Change My PIN</h4>
+            <form onsubmit="submitChangePin(event)" style="margin-top: 10px;">
+              <div class="form-group">
+                <label>Current PIN</label>
+                <input type="password" id="oldPin" maxlength="4" placeholder="****" required />
+              </div>
+              <div class="form-group">
+                <label>New 4-Digit PIN</label>
+                <input type="password" id="newPin" maxlength="4" placeholder="****" required />
+              </div>
+              <button type="submit" class="btn btn-primary">Update PIN</button>
+            </form>
+            <div id="pinChangeError" class="error-msg"></div>
+          </div>
+
+          <div id="roommatesProfileGrid" class="grid-3" style="margin-top: 15px;"></div>
+        </div>
+      </section>
+
+      <!-- 3. EXPENSES VIEW -->
+      <section id="view-expenses" class="view-section">
+        <div class="card glass-card">
+          <h3>Expense Log</h3>
+          <p class="subtitle">Log a new shared expense — synced to backend instantly.</p>
+          
+          <form id="expenseForm" onsubmit="submitExpense(event)" style="margin-top: 15px;">
+            <div class="form-group">
+              <label>Title / Description</label>
+              <input type="text" id="expTitle" placeholder="e.g. Costco grocery run" required />
+            </div>
+            <div class="form-group">
+              <label>Amount (₦)</label>
+              <input type="number" step="0.01" min="0.01" id="expAmount" placeholder="0.00" required />
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="expCategory">
+                <option value="Groceries">Groceries</option>
+                <option value="Utilities">Utilities</option>
+                <option value="Rent">Rent</option>
+                <option value="Cleaning">Cleaning</option>
+                <option value="Supplies">Supplies</option>
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Split Among Roommates</label>
+              <div id="splitCheckboxes" class="checkbox-chips-group"></div>
+            </div>
+            <button type="submit" class="btn btn-primary">+ Log Expense</button>
+          </form>
+        </div>
+
+        <div class="card glass-card" style="margin-top: 20px;">
+          <h3>Recent Expenses</h3>
+          <p class="subtitle">Students can delete their own entries to fix input errors.</p>
+          <div id="expenseActivityList" class="item-list"></div>
+        </div>
+      </section>
+
+      <!-- 4. SHOPPING CART VIEW -->
+      <section id="view-cart" class="view-section">
+        <div class="card glass-card">
+          <h3>Collaborative Shopping Cart</h3>
+          <p class="subtitle">Add items, check them off, or convert them into a split expense.</p>
+          
+          <form id="cartForm" onsubmit="submitCartItem(event)" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" id="cartName" placeholder="Item name (e.g. Paper towels)" style="flex: 2; min-width: 200px;" required />
+            <input type="number" step="0.01" min="0" id="cartPrice" placeholder="₦ Price" style="flex: 1; min-width: 100px;" required />
+            <input type="number" min="1" max="1000" id="cartQty" value="1" style="width: 70px;" required />
+            <button type="submit" class="btn btn-primary" style="flex-basis: 100%;">+ Add to Cart</button>
+          </form>
+        </div>
+
+        <div class="card glass-card" style="margin-top: 20px;">
+          <div class="flex-between">
+            <h3>Cart Items</h3>
+            <button class="btn btn-outline-sm" onclick="clearCheckedCart()">Clear Checked</button>
+          </div>
+          <div id="cartItemList" class="item-list" style="margin-top: 15px;"></div>
+        </div>
+      </section>
+
+      <!-- 5. RECEIPTS VIEW -->
+      <section id="view-receipts" class="view-section">
+        <div class="card glass-card">
+          <h3>Receipts & Ledger</h3>
+          <p class="subtitle">Printable digital receipts and automated debt minimization plan.</p>
+          <div id="settlementPlanList" class="item-list" style="margin-top: 10px;"></div>
+        </div>
+
+        <div class="card glass-card" style="margin-top: 20px;">
+          <h3>Digital Receipts Archive</h3>
+          <div id="digitalReceiptsList" class="item-list" style="margin-top: 15px;"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="bottom-nav glass-card">
+      <button class="nav-item active" onclick="switchTab('dashboard', this)"><span>📊</span> Dashboard</button>
+      <button class="nav-item" onclick="switchTab('roommates', this)"><span>👥</span> Roommates</button>
+      <button class="nav-item" onclick="switchTab('expenses', this)"><span>💳</span> Expenses</button>
+      <button class="nav-item" onclick="switchTab('cart', this)"><span>🛒</span> Cart</button>
+      <button class="nav-item" onclick="switchTab('receipts', this)"><span>📄</span> Receipts</button>
+    </nav>
+
+  </div>
+
+  <!-- PROFILE MODAL -->
+  <div id="profileModal" class="modal-overlay hidden">
+    <div class="card glass-card modal-content animate-scale-in">
+      <div class="flex-between">
+        <h3>👤 My Profile & Details</h3>
+        <button class="btn-close" onclick="closeProfileModal()">✕</button>
+      </div>
+      
+      <div class="profile-preview-area">
+        <div class="avatar-large-wrapper">
+          <img id="modalAvatarImg" src="" class="avatar-large hidden" alt="Avatar" />
+          <span id="modalAvatarText" class="avatar-large-text">S1</span>
+        </div>
+        <div>
+          <h4 id="modalStudentName">Student Name</h4>
+          <span class="room-sub">Room 7 • Slot <span id="modalStudentSlot">1</span></span>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 15px;">
+        <label>Upload Profile Picture</label>
+        <input type="file" id="avatarFileInput" accept="image/*" onchange="handleAvatarUpload(event)" />
+        <small class="subtitle" style="display:block; margin-top:4px;">Only your photo is visible to other students in Room 7.</small>
+      </div>
+
+      <div class="private-details-box">
+        <span class="tag-private">🔒 Private Details</span>
+        <div class="detail-row">
+          <span>Student ID / Slot:</span>
+          <strong id="privateSlot">Slot 1</strong>
+        </div>
+        <div class="detail-row">
+          <span>Dorm Room:</span>
+          <strong>Room 7, Building B</strong>
+        </div>
+      </div>
+
+      <button class="btn btn-outline-sm" style="width:100%; margin-top:15px;" onclick="closeProfileModal()">Save & Close</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
